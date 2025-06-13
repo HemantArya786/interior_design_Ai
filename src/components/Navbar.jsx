@@ -26,6 +26,12 @@ function Navbar() {
             <Link to={"/search"} className="text-gray-600 hover:text-gray-900">
               Services
             </Link>
+            <Link to={"/signup"} className="text-gray-600 hover:text-gray-900">
+              login
+            </Link>
+            <Link to={"/login"} className="text-gray-600 hover:text-gray-900">
+              sign up
+            </Link>
             <Link to={"/contact"} className="text-gray-600 hover:text-gray-900">
               Contact
             </Link>
