@@ -1,188 +1,443 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-import React, { useState } from "react";
+import { useState, useRef } from "react";
 const Search = () => {
-  const [searchState, setSearchState] = useState({
-    text: "",
-    image: null,
-    imagePreview: "",
-    pdf: null,
-    code: "",
-  });
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
+  const [selectedFileType, setSelectedFileType] = useState("text");
+  const [prompt, setPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [generatedContent, setGeneratedContent] = useState(null);
+  const fileInputRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files?.[0];
     if (file) {
-      setSearchState((prev) => ({
-        ...prev,
-        image: file,
-        imagePreview: URL.createObjectURL(file),
-      }));
+      setUploadedFile(file);
     }
   };
-  const handleSearch = () => {
-    // Here you can implement the search logic using both text and image
-    console.log("Searching with:", searchState);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleFileSelect = (file) => {
+    const validTypes = ["image/jpeg", "image/png", "application/pdf"];
+    if (validTypes.includes(file.type)) {
+      setUploadedFile(file);
+    } else {
+      alert("Please upload a valid file (PNG, JPG, or PDF)");
+    }
+  };
+
+  const handleGenerate = () => {
+    if (!prompt && !uploadedFile) {
+      alert("Please enter a prompt or upload a file");
+      return;
+    }
+    setIsGenerating(true);
+    setTimeout(() => {
+      let response = "";
+      if (uploadedFile) {
+        if (uploadedFile.type.includes("image")) {
+          response =
+            "Image Analysis: This appears to be a high-quality image showing [scene description]. Key elements include:\n\n1. Main subject composition\n2. Color palette analysis\n3. Style identification\n4. Suggested improvements";
+        } else if (uploadedFile.type === "application/pdf") {
+          response =
+            "PDF Analysis: Document processed successfully. Summary:\n\n1. Document type: Business Report\n2. Key topics identified\n3. Main findings\n4. Important data points";
+        }
+      } else {
+        response =
+          "Based on your prompt, here is a detailed response:\n\n1. Initial analysis\n2. Key considerations\n3. Step-by-step breakdown\n4. Recommendations\n5. Additional insights";
+      }
+      setGeneratedContent(response);
+      setIsGenerating(false);
+    }, 2000);
   };
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Hero Section */}
-      <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-        {/* Status Badge */}
-        <div className="bg-green-900/30 text-green-400 px-4 py-2 rounded-full flex items-center mb-10">
-          <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-          <span>Deep Work now live</span>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4">
+      {/* <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            AI Assistant
+          </h1>
+          <p className="text-lg text-gray-600">
+            Enter your prompt, upload images or PDFs, and let AI help you
+            analyze and generate content.
+          </p>
         </div>
-        {/* Main Heading */}
-        <h1 className="text-5xl md:text-7xl font-bold mb-4">
-          Your AI Assistant
-        </h1>
-        {/* Gradient Subtitle */}
-        <div className="text-4xl md:text-6xl font-bold mb-12">
-          <span className="bg-gradient-to-r from-teal-400 via-purple-400 to-lime-400 text-transparent bg-clip-text">
-            for daily web tasks
-          </span>
-        </div>
-        {/* Search Bar */}
-        <div className="w-full max-w-3xl bg-gray-900/80 border border-gray-800 rounded-xl p-6 mb-8 shadow-2xl">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <textarea
-                    placeholder="Enter your prompt or describe what you're looking for..."
-                    className="bg-transparent border-none outline-none w-full text-base min-h-[100px] resize-none leading-relaxed placeholder-gray-500"
-                    value={searchState.text}
-                    onChange={(e) =>
-                      setSearchState((prev) => ({
-                        ...prev,
-                        text: e.target.value,
-                      }))
-                    }
-                  />
-                  <div className="absolute bottom-2 left-2 flex items-center gap-2 text-gray-400 text-xs">
-                    <i className="fas fa-info-circle"></i>
-                    <span>Press Enter to send, Shift + Enter for new line</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2 cursor-pointer bg-gray-800 hover:bg-gray-700 transition-colors px-4 py-2 rounded-lg !rounded-button group">
-                  <i className="fas fa-image text-gray-400 group-hover:text-blue-400 transition-colors"></i>
-                  <span className="text-sm">Add Image</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                </label>
-                <button
-                  onClick={handleSearch}
-                  className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 rounded-lg !rounded-button"
-                >
-                  <i className="fas fa-search"></i>
-                  <span className="text-sm">Generate</span>
-                </button>
-              </div>
-            </div>
-            {searchState.imagePreview && (
-              <div className="mt-4 relative group">
-                <img
-                  src={searchState.imagePreview}
-                  alt="Preview"
-                  className="h-40 w-full object-cover rounded-lg border border-gray-700"
-                />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                  <button
-                    onClick={() =>
-                      setSearchState((prev) => ({
-                        ...prev,
-                        image: null,
-                        imagePreview: "",
-                      }))
-                    }
-                    className="bg-red-500/80 hover:bg-red-600/80 p-2 rounded-full transform hover:scale-110 transition-all !rounded-button"
-                  >
-                    <i className="fas fa-trash text-white"></i>
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-800">
-              <div className="flex items-center">
-                <button className="flex items-center bg-gray-800 rounded-full px-2 py-1 mr-2 cursor-pointer whitespace-nowrap !rounded-button">
-                  <div className="w-3 h-3 bg-blue-400 rounded-full mr-2"></div>
-                  <span className="text-sm">Deep Work</span>
-                </button>
-                <span className="text-xs bg-green-600 px-2 py-0.5 rounded-md">
-                  PRO
-                </span>
-              </div>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div
+            className={`relative mb-6 ${
+              isDragging ? "border-indigo-500" : "border-gray-300"
+            } border-2 border-dashed rounded-lg transition-colors`}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+          >
+            <textarea
+              className="w-full px-4 py-3 min-h-[120px] bg-transparent border-none focus:ring-0 resize-none"
+              placeholder="Enter your prompt here or drag & drop files (PNG, JPG, PDF)..."
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+            />
+            <div className="flex items-center justify-between px-4 py-2 border-t border-gray-200">
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={handleSearch}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center gap-2 !rounded-button"
+                  onClick={() => fileInputRef.current.click()}
+                  className="flex items-center space-x-2 text-gray-600 hover:text-indigo-600"
                 >
-                  <i className="fas fa-search"></i>
-                  <span>Search</span>
+                  <i className="fas fa-paperclip"></i>
+                  <span>Attach file</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".png,.jpg,.jpeg,.pdf"
+                  onChange={(e) => handleFileSelect(e.target.files[0])}
+                />
+                {uploadedFile && (
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <i
+                      className={`fas ${
+                        uploadedFile.type.includes("image")
+                          ? "fa-image"
+                          : "fa-file-pdf"
+                      }`}
+                    ></i>
+                    <span className="truncate max-w-xs">
+                      {uploadedFile.name}
+                    </span>
+                    <button
+                      onClick={() => setUploadedFile(null)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <i className="fas fa-times"></i>
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button
+                className={`px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors flex items-center space-x-2 whitespace-nowrap !rounded-button ${
+                  isGenerating ? "opacity-75 cursor-not-allowed" : ""
+                }`}
+                onClick={handleGenerate}
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-wand-magic-sparkles"></i>
+                    <span>Generate</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+          {generatedContent && (
+            <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-gray-900">
+                  Generated Response
+                </h3>
+                <button
+                  className="text-gray-500 hover:text-gray-700 p-1"
+                  onClick={() =>
+                    navigator.clipboard.writeText(generatedContent)
+                  }
+                >
+                  <i className="fas fa-copy"></i>
+                </button>
+              </div>
+              <div className="whitespace-pre-wrap text-gray-700">
+                {generatedContent}
+              </div>
+            </div>
+          )}
+        </div>
+      </div> */}
+
+      {/* Hero Section */}
+      {/* <div className="relative">
+        <div className="absolute inset-0">
+          <img
+            src="https://readdy.ai/api/search-image?query=futuristic%20AI%20technology%20concept%20with%20glowing%20digital%20interface%2C%20abstract%20data%20visualization%2C%20blue%20and%20purple%20color%20scheme%2C%20clean%20modern%20design%20with%20soft%20lighting%20effects%2C%20high-tech%20atmosphere%20with%20subtle%20grid%20patterns&width=1440&height=500&seq=2&orientation=landscape"
+            alt="AI Technology Hero"
+            className="w-full h-full object-cover object-top"
+          />
+          <div className="absolute inset-0 bg-gray-900 opacity-60"></div>
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            Your All-in-One AI Assistant
+          </h2>
+          <p className="text-xl text-gray-200 max-w-2xl mb-8">
+            Generate text, images, analyze documents, and more with our powerful
+            AI tool. Simply enter your prompt and let our AI do the work.
+          </p>
+        </div>
+      </div> */}
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* AI Content Generator Section */}
+        <div className="mb-16">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  CreativeAI Studio
+                </h2>
+                <p className="text-gray-600">
+                  Your all-in-one AI assistant for generating text, images, and
+                  document analysis
+                </p>
+              </div>
+              <div className="relative mb-4">
+                <div className="flex flex-col bg-gray-50 rounded-lg border border-gray-300 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
+                  <textarea
+                    className="w-full px-4 py-3 bg-transparent border-none focus:ring-0 resize-none min-h-[120px]"
+                    placeholder="Enter your prompt here... (e.g., 'Write a blog post about AI technology' or 'Generate an image of a futuristic city')"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                  ></textarea>
+                  <div className="flex items-center justify-between px-4 py-2 border-t border-gray-300">
+                    <div className="flex items-center space-x-4">
+                      <button
+                        className={`p-2 rounded-lg transition-colors flex items-center space-x-1 cursor-pointer ${
+                          selectedFileType === "text"
+                            ? "bg-indigo-100 text-indigo-600"
+                            : "hover:bg-gray-100"
+                        }`}
+                        onClick={() => setSelectedFileType("text")}
+                      >
+                        <i className="fas fa-font text-lg"></i>
+                        <span className="text-sm">Text</span>
+                      </button>
+                      <button
+                        className={`p-2 rounded-lg transition-colors flex items-center space-x-1 cursor-pointer ${
+                          selectedFileType === "image"
+                            ? "bg-indigo-100 text-indigo-600"
+                            : "hover:bg-gray-100"
+                        }`}
+                        onClick={() => setSelectedFileType("image")}
+                      >
+                        <i className="fas fa-image text-lg"></i>
+                        <span className="text-sm">Image</span>
+                      </button>
+                      <button
+                        className={`p-2 rounded-lg transition-colors flex items-center space-x-1 cursor-pointer ${
+                          selectedFileType === "pdf"
+                            ? "bg-indigo-100 text-indigo-600"
+                            : "hover:bg-gray-100"
+                        }`}
+                        onClick={() => setSelectedFileType("pdf")}
+                      >
+                        <i className="fas fa-file-pdf text-lg"></i>
+                        <span className="text-sm">PDF</span>
+                      </button>
+                      <button
+                        className={`p-2 rounded-lg transition-colors flex items-center space-x-1 cursor-pointer ${
+                          selectedFileType === "code"
+                            ? "bg-indigo-100 text-indigo-600"
+                            : "hover:bg-gray-100"
+                        }`}
+                        onClick={() => setSelectedFileType("code")}
+                      >
+                        <i className="fas fa-code text-lg"></i>
+                        <span className="text-sm">Code</span>
+                      </button>
+                    </div>
+                    <button
+                      className="inline-flex items-center px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap !rounded-button"
+                      onClick={handleGenerate}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <i className="fas fa-spinner fa-spin mr-2"></i>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-magic mr-2"></i>
+                          Generate
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                {selectedFileType !== "text" && (
+                  <div className="mt-3 flex items-center space-x-4">
+                    <label className="flex items-center space-x-2 px-4 py-2 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer hover:bg-gray-100">
+                      <i className="fas fa-upload"></i>
+                      <span>Upload {selectedFileType}</span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        accept={
+                          selectedFileType === "image"
+                            ? "image/*"
+                            : selectedFileType === "pdf"
+                            ? ".pdf"
+                            : "*"
+                        }
+                      />
+                    </label>
+                    {uploadedFile && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600 truncate max-w-xs">
+                          {uploadedFile.name}
+                        </span>
+                        <button
+                          className="text-red-500 hover:text-red-700 cursor-pointer"
+                          onClick={() => setUploadedFile(null)}
+                        >
+                          <i className="fas fa-times-circle"></i>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {generatedContent && (
+                <div className="mt-6 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                    <h3 className="font-medium text-gray-900">
+                      Generated Content
+                    </h3>
+                    <div className="flex space-x-2">
+                      <button className="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-200 cursor-pointer">
+                        <i className="fas fa-copy"></i>
+                      </button>
+                      <button className="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-200 cursor-pointer">
+                        <i className="fas fa-download"></i>
+                      </button>
+                      <button className="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-200 cursor-pointer">
+                        <i className="fas fa-share-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="h-[300px] p-4 overflow-y-auto">
+                    <div className="text-gray-700 whitespace-pre-wrap">
+                      {generatedContent.content}
+                      {selectedFileType === "image" && (
+                        <div className="mt-4">
+                          <img
+                            src="https://readdy.ai/api/search-image?query=futuristic%20city%20skyline%20with%20tall%20skyscrapers%2C%20flying%20vehicles%2C%20holographic%20advertisements%2C%20neon%20lights%2C%20dramatic%20lighting%2C%20detailed%20architectural%20elements%2C%20sci-fi%20atmosphere%2C%20digital%20art%20style%20with%20vibrant%20colors%20and%20high%20contrast&width=800&height=500&seq=3&orientation=landscape"
+                            alt="AI Generated Image"
+                            className="w-full h-auto rounded-lg shadow-md"
+                          />
+                          <p className="mt-2 text-sm text-gray-500 italic">
+                            AI-generated image based on your prompt
+                          </p>
+                        </div>
+                      )}
+                      {selectedFileType === "code" && (
+                        <div className="mt-4 bg-gray-800 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                          {`// React component for a simple AI chat interface
+import React, { useState } from 'react';
+const AIChat = () => {
+const [messages, setMessages] = useState([]);
+const [input, setInput] = useState('');
+const handleSend = () => {
+if (input.trim() === '') return;
+// Add user message
+const newMessages = [...messages, { text: input, sender: 'user' }];
+setMessages(newMessages);
+setInput('');
+// Simulate AI response
+setTimeout(() => {
+setMessages([
+...newMessages,
+{
+text: 'This is an AI-generated response to your message.',
+sender: 'ai'
+}
+]);
+}, 1000);
+};
+return (
+<div className="chat-container">
+<div className="messages">
+{messages.map((msg, index) => (
+<div key={index} className={\`message \${msg.sender}\`}>
+{msg.text}
+</div>
+))}
+</div>
+<div className="input-area">
+<input
+value={input}
+onChange={(e) => setInput(e.target.value)}
+placeholder="Type your message..."
+onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+/>
+<button onClick={handleSend}>Send</button>
+</div>
+</div>
+);
+};
+export default AIChat;`}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="mt-6 flex flex-wrap gap-2">
+                <div className="text-sm text-gray-500">Try:</div>
+                <button
+                  className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full cursor-pointer"
+                  onClick={() =>
+                    setPrompt(
+                      "Write a blog post about the future of AI in healthcare"
+                    )
+                  }
+                >
+                  Blog post about AI in healthcare
+                </button>
+                <button
+                  className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full cursor-pointer"
+                  onClick={() =>
+                    setPrompt("Generate an image of a futuristic smart home")
+                  }
+                >
+                  Image of futuristic smart home
+                </button>
+                <button
+                  className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full cursor-pointer"
+                  onClick={() =>
+                    setPrompt(
+                      "Create a React component for a user profile card"
+                    )
+                  }
+                >
+                  React component code
                 </button>
               </div>
             </div>
           </div>
-          {/* Quick Actions - First Row */}
-          <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-            <button className="bg-gray-900/60 border border-gray-800 rounded-xl p-3 flex items-center cursor-pointer !rounded-button">
-              <div className="w-8 h-8 bg-blue-900/30 rounded-lg flex items-center justify-center mr-3">
-                <i className="fas fa-newspaper text-blue-400"></i>
-              </div>
-              <span className="text-sm whitespace-nowrap">
-                Check News About Brand
-              </span>
-            </button>
-            <button className="bg-gray-900/60 border border-gray-800 rounded-xl p-3 flex items-center cursor-pointer !rounded-button">
-              <div className="w-8 h-8 bg-green-900/30 rounded-lg flex items-center justify-center mr-3">
-                <i className="fas fa-balance-scale text-green-400"></i>
-              </div>
-              <span className="text-sm whitespace-nowrap">
-                Right / Left Unbiased News Coverage
-              </span>
-            </button>
-            <button className="bg-gray-900/60 border border-gray-800 rounded-xl p-3 flex items-center cursor-pointer !rounded-button">
-              <div className="w-8 h-8 bg-yellow-900/30 rounded-lg flex items-center justify-center mr-3">
-                <i className="fas fa-store text-yellow-400"></i>
-              </div>
-              <span className="text-sm whitespace-nowrap">
-                Review my Shopify store
-              </span>
-            </button>
-          </div>
-          {/* Quick Actions - Second Row */}
-          <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-3">
-            <button className="bg-gray-900/60 border border-gray-800 rounded-xl p-3 flex items-center cursor-pointer !rounded-button">
-              <div className="w-8 h-8 bg-purple-900/30 rounded-lg flex items-center justify-center mr-3">
-                <i className="fas fa-search text-purple-400"></i>
-              </div>
-              <span className="text-sm whitespace-nowrap">
-                Website Scanner Agent
-              </span>
-            </button>
-            <button className="bg-gray-900/60 border border-gray-800 rounded-xl p-3 flex items-center cursor-pointer !rounded-button">
-              <div className="w-8 h-8 bg-teal-900/30 rounded-lg flex items-center justify-center mr-3">
-                <i className="fas fa-envelope text-teal-400"></i>
-              </div>
-              <span className="text-sm whitespace-nowrap">
-                Inbox Management: Urgent Emails
-              </span>
-            </button>
-          </div>
         </div>
-        {/* Background Image */}
-        <div className="fixed inset-0 -z-10 opacity-10">
-          <img
-            src="https://readdy.ai/api/search-image?query=abstract%20digital%20network%20connections%20with%20glowing%20nodes%20and%20lines%2C%20futuristic%20technology%20concept%2C%20dark%20background%20with%20blue%20and%20green%20accents%2C%20high%20tech%20visualization%2C%20AI%20network%20representation&width=1440&height=900&seq=2&orientation=landscape"
-            alt="Background"
-            className="w-full h-full object-cover"
-          />
-        </div>
+        {/* Features Section */}
       </div>
     </div>
   );

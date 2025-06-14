@@ -9,6 +9,8 @@ import Contact from "./Contact";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import Search from "./Search";
+import CategoryPage from "./CategoryPage";
+import ItemsPage from "./ItemsPage";
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
         <Route path="/search" element={<Search />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/about" element={<About />} />
+        <Route path="/category" element={<CategoryPage />} />
+        <Route path="/item" element={<ItemsPage />} />
         <Route path="/how-it-works" element={<HowItwork />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="*" element={<Login />} />

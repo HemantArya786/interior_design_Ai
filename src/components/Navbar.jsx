@@ -20,17 +20,20 @@ function Navbar() {
             <Link to={"/about"} className="text-gray-900 font-medium">
               About
             </Link>
-            <Link to={""} className="text-gray-600 hover:text-gray-900">
+            <Link
+              to={"/category"}
+              className="text-gray-600 hover:text-gray-900"
+            >
               Projects
             </Link>
             <Link to={"/search"} className="text-gray-600 hover:text-gray-900">
               Services
             </Link>
             <Link to={"/signup"} className="text-gray-600 hover:text-gray-900">
-              login
+              sign up
             </Link>
             <Link to={"/login"} className="text-gray-600 hover:text-gray-900">
-              sign up
+              login
             </Link>
             <Link to={"/contact"} className="text-gray-600 hover:text-gray-900">
               Contact

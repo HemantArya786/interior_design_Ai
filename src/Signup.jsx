@@ -1,276 +1,530 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-import axios from "axios";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+
+import React, { useState, useEffect } from "react";
+
 const Signup = () => {
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
-    agreeToTerms: false,
   });
+
+  const [errors, setErrors] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  // Password requirements
+  const passwordRequirements = [
+    { id: "length", label: "At least 8 characters", regex: /.{8,}/ },
+    { id: "number", label: "Contains a number", regex: /\d/ },
+    {
+      id: "special",
+      label: "Contains a special character",
+      regex: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
+    },
+    { id: "uppercase", label: "Contains uppercase letter", regex: /[A-Z]/ },
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
+    setFormData({
+      ...formData,
       [name]: value,
-    }));
-  };
-  const handleCheckboxChange = (checked) => {
-    setFormData((prev) => ({
-      ...prev,
-      agreeToTerms: checked,
-    }));
-  };
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+    });
 
+    if (errors[name]) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        [name]: "",
+      }));
+    }
+
+    // Calculate password strength when password changes
+    if (name === "password") {
+      calculatePasswordStrength(value);
+    }
+  };
+
+  const calculatePasswordStrength = (password) => {
+    let strength = 0;
+
+    passwordRequirements.forEach((req) => {
+      if (req.regex.test(password)) {
+        strength += 25;
+      }
+    });
+
+    setPasswordStrength(strength);
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+    const newErrors = { ...errors };
+
+    // Validate full name
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = "Full name is required";
+      isValid = false;
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+      isValid = false;
+    } else if (!emailRegex.test(formData.email)) {
+      newErrors.email = "Please enter a valid email";
+      isValid = false;
+    }
+
+    // Validate password
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+      isValid = false;
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+      isValid = false;
+    }
+
+    // Validate confirm password
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
-      setIsLoading(false);
-      return;
+      newErrors.confirmPassword = "Passwords do not match";
+      isValid = false;
     }
 
-    try {
-      const response = await axios.post("http://localhost:5000/api/signup", {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        password: formData.password,
-      });
+    setErrors(newErrors);
+    return isValid;
+  };
 
-      console.log("Signup successful:", response.data);
-      // Redirect or show success message here
-    } catch (err) {
-      console.error("Signup error:", err);
-      setError(
-        err.response?.data?.message ||
-          "An error occurred during signup. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (validateForm()) {
+      setIsLoading(true);
+
+      // Simulate API call
+      setTimeout(() => {
+        setIsLoading(false);
+        setShowSuccessMessage(true);
+
+        // Reset form after successful submission
+        setTimeout(() => {
+          setShowSuccessMessage(false);
+          setFormData({
+            fullName: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+          });
+        }, 3000);
+      }, 1500);
+    } else {
+      // Add shake animation to form on error
+      const form = document.getElementById("signup-form");
+      form?.classList.add("animate-shake");
+      setTimeout(() => {
+        form?.classList.remove("animate-shake");
+      }, 500);
     }
   };
+
+  // Initialize password strength chart
+  useEffect(() => {
+    const chartDom = document.getElementById("password-strength-chart");
+    if (chartDom) {
+      const myChart = echarts.init(chartDom);
+
+      const option = {
+        animation: false,
+        series: [
+          {
+            type: "gauge",
+            startAngle: 180,
+            endAngle: 0,
+            min: 0,
+            max: 100,
+            splitNumber: 4,
+            radius: "100%",
+            axisLine: {
+              lineStyle: {
+                width: 6,
+                color: [
+                  [0.25, "#FF5252"],
+                  [0.5, "#FFA726"],
+                  [0.75, "#66BB6A"],
+                  [1, "#2E7D32"],
+                ],
+              },
+            },
+            pointer: {
+              icon: "path://M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",
+              length: "60%",
+              width: 8,
+              offsetCenter: [0, "5%"],
+              itemStyle: {
+                color: "#424242",
+              },
+            },
+            axisTick: {
+              length: 12,
+              lineStyle: {
+                color: "auto",
+                width: 2,
+              },
+            },
+            splitLine: {
+              length: 20,
+              lineStyle: {
+                color: "auto",
+                width: 2,
+              },
+            },
+            axisLabel: {
+              color: "#999",
+              fontSize: 10,
+              distance: -60,
+              formatter: function (value) {
+                if (value === 0) return "Weak";
+                if (value === 50) return "Medium";
+                if (value === 100) return "Strong";
+                return "";
+              },
+            },
+            title: {
+              offsetCenter: [0, "-20%"],
+              fontSize: 12,
+              color: "#616161",
+            },
+            detail: {
+              fontSize: 14,
+              offsetCenter: [0, "30%"],
+              valueAnimation: true,
+              color: "#616161",
+              formatter: function (value) {
+                if (value <= 25) return "Weak";
+                if (value <= 50) return "Fair";
+                if (value <= 75) return "Good";
+                return "Strong";
+              },
+            },
+            data: [
+              {
+                value: passwordStrength,
+                name: "Password Strength",
+              },
+            ],
+          },
+        ],
+      };
+
+      myChart.setOption(option);
+
+      // Update chart when password strength changes
+      return () => {
+        myChart.dispose();
+      };
+    }
+  }, [passwordStrength]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo and Header */}
-        <div className="text-center mb-8">
-          <img
-            src="https://readdy.ai/api/search-image?query=modern%20minimalist%20AI%20tech%20company%20logo%20with%20blue%20accent%20on%20dark%20background%20professional%20sleek%20design%20with%20abstract%20geometric%20elements%20simple%20elegant%20branding%20for%20technology%20firm&width=180&height=60&seq=3&orientation=landscape"
-            alt="Company Logo"
-            className="h-12 mx-auto mb-6"
-          />
-          <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-          <p className="text-gray-400">Join us to start your journey</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 md:p-8">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden transition-all duration-300 transform">
+        {/* Header */}
+        <div className="p-6 md:p-8 text-center border-b border-gray-100">
+          <div className="flex justify-center mb-4">
+            <img
+              src="https://readdy.ai/api/search-image?query=modern%20minimalist%20logo%20design%20with%20blue%20and%20purple%20gradient%2C%20abstract%20geometric%20shape%2C%20professional%20and%20clean%2C%20suitable%20for%20tech%20company%2C%20white%20background%2C%20vector%20style&width=120&height=120&seq=logo1&orientation=squarish"
+              alt="Company Logo"
+              className="h-12 w-auto object-contain"
+            />
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+            Create your account
+          </h1>
+          <p className="text-gray-600">Join thousands of users today</p>
         </div>
-        {/* Login Form */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 shadow-2xl p-8">
-          {error && (
-            <div className="mb-6 p-3 bg-red-900/30 border border-red-800 rounded-lg text-red-300 text-sm">
-              <div className="flex items-center">
-                <i className="fas fa-exclamation-circle mr-2"></i>
-                <span>{error}</span>
-              </div>
-            </div>
-          )}
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="firstName" className="block text-gray-300">
-                    First Name
-                  </label>
-                  <div className="relative">
-                    <i className="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                    <input
-                      id="firstName"
-                      name="firstName"
-                      type="text"
-                      placeholder="John"
-                      value={formData.firstName}
-                      onChange={handleChange}
-                      required
-                      className="w-full pl-10 py-2 bg-gray-900/70 border border-gray-700 rounded-lg text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 focus:ring-2 focus:outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="lastName" className="block text-gray-300">
-                    Last Name
-                  </label>
-                  <div className="relative">
-                    <i className="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                    <input
-                      id="lastName"
-                      name="lastName"
-                      type="text"
-                      placeholder="Doe"
-                      value={formData.lastName}
-                      onChange={handleChange}
-                      required
-                      className="w-full pl-10 py-2 bg-gray-900/70 border border-gray-700 rounded-lg text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 focus:ring-2 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="email" className="block text-gray-300">
-                  Email address
-                </label>
-                <div className="relative">
-                  <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="name@company.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 py-2 bg-gray-900/70 border border-gray-700 rounded-lg text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 focus:ring-2 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="block text-gray-300">
-                    Password
-                  </label>
-                  <a
-                    href="#"
-                    className="text-sm text-blue-400 hover:text-blue-300 cursor-pointer"
-                  >
-                    Forgot password?
-                  </a>
-                </div>
-                <div className="relative">
-                  <i className="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 py-2 bg-gray-900/70 border border-gray-700 rounded-lg text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 focus:ring-2 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-gray-300"
-                >
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <i className="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 py-2 bg-gray-900/70 border border-gray-700 rounded-lg text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 focus:ring-2 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="agreeToTerms"
-                  checked={formData.agreeToTerms}
-                  onChange={(e) => handleCheckboxChange(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-900/70"
-                />
-                <label
-                  htmlFor="agreeToTerms"
-                  className="text-sm text-gray-300 cursor-pointer"
-                >
-                  I agree to the{" "}
-                  <a href="#" className="text-blue-400 hover:text-blue-300">
-                    Terms of Service
-                  </a>{" "}
-                  and{" "}
-                  <a href="#" className="text-blue-400 hover:text-blue-300">
-                    Privacy Policy
-                  </a>
-                </label>
-              </div>
-              <button
-                type="submit"
-                disabled={isLoading || !formData.agreeToTerms}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap !rounded-button"
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center">
-                    <i className="fas fa-circle-notch fa-spin mr-2"></i>
-                    <span>Creating account...</span>
-                  </div>
-                ) : (
-                  "Create Account"
-                )}
-              </button>
-            </div>
-          </form>
-          <div className="mt-6 pt-6 border-t border-gray-700">
-            <div className="text-center text-gray-400 text-sm mb-4">
-              Or continue with
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                className="bg-transparent border border-gray-700 hover:bg-gray-800 text-white py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap !rounded-button"
-              >
-                <i className="fab fa-google text-lg"></i>
-              </button>
-              <button
-                type="button"
-                className="bg-transparent border border-gray-700 hover:bg-gray-800 text-white py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap !rounded-button"
-              >
-                <i className="fab fa-apple text-lg"></i>
-              </button>
-              <button
-                type="button"
-                className="bg-transparent border border-gray-700 hover:bg-gray-800 text-white py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap !rounded-button"
-              >
-                <i className="fab fa-microsoft text-lg"></i>
-              </button>
-            </div>
+
+        {/* Social Sign-up Options */}
+        <div className="px-6 md:px-8 pt-6">
+          <div className="flex flex-col md:flex-row gap-3 mb-6">
+            <button
+              type="button"
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-200 !rounded-button whitespace-nowrap cursor-pointer"
+            >
+              <i className="fab fa-google text-red-500"></i>
+              <span>Sign up with Google</span>
+            </button>
+            <button
+              type="button"
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-200 !rounded-button whitespace-nowrap cursor-pointer"
+            >
+              <i className="fab fa-apple text-gray-800"></i>
+              <span>Sign up with Apple</span>
+            </button>
+          </div>
+
+          <div className="relative flex items-center justify-center mb-6">
+            <div className="border-t border-gray-200 absolute w-full"></div>
+            <span className="bg-white px-3 text-sm text-gray-500 relative">
+              or continue with email
+            </span>
           </div>
         </div>
-        {/* Sign In Link */}
-        <div className="text-center mt-6 text-gray-400">
-          Already have an account?{" "}
-          <Link
-            to="/login"
-            className="text-blue-400 hover:text-blue-300 cursor-pointer"
-          >
-            Sign in
-          </Link>
-        </div>
-        {/* Background Image */}
-        <div className="fixed inset-0 -z-10 opacity-20">
-          <img
-            src="https://readdy.ai/api/search-image?query=abstract%20digital%20network%20connections%20with%20glowing%20nodes%20and%20lines%20on%20dark%20background%20futuristic%20technology%20concept%20with%20blue%20and%20purple%20accents%20high%20tech%20visualization%20AI%20network%20representation%20cybersecurity%20theme&width=1440&height=900&seq=4&orientation=landscape"
-            alt="Background"
-            className="w-full h-full object-cover"
-          />
+
+        {/* Sign-up Form */}
+        <form
+          id="signup-form"
+          className="px-6 md:px-8 pb-6 md:pb-8"
+          onSubmit={handleSubmit}
+        >
+          <div className="space-y-5">
+            {/* Full Name */}
+            <div className="relative">
+              <label
+                htmlFor="fullName"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Full Name
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    errors.fullName ? "border-red-500" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200`}
+                  placeholder="Enter your full name"
+                />
+                {formData.fullName && !errors.fullName && (
+                  <i className="fas fa-check-circle absolute right-3 top-3 text-green-500"></i>
+                )}
+              </div>
+              {errors.fullName && (
+                <p className="mt-1 text-sm text-red-500 flex items-center">
+                  <i className="fas fa-exclamation-circle mr-1"></i>
+                  {errors.fullName}
+                </p>
+              )}
+            </div>
+
+            {/* Email */}
+            <div className="relative">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Email Address
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    errors.email ? "border-red-500" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200`}
+                  placeholder="Enter your email address"
+                />
+                {formData.email && !errors.email && (
+                  <i className="fas fa-check-circle absolute right-3 top-3 text-green-500"></i>
+                )}
+              </div>
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-500 flex items-center">
+                  <i className="fas fa-exclamation-circle mr-1"></i>
+                  {errors.email}
+                </p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div className="relative">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    errors.password ? "border-red-500" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200`}
+                  placeholder="Create a password"
+                />
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-500 flex items-center">
+                  <i className="fas fa-exclamation-circle mr-1"></i>
+                  {errors.password}
+                </p>
+              )}
+
+              {/* Password Strength Indicator */}
+              {(passwordFocused || formData.password) && (
+                <div className="mt-3 mb-4">
+                  <div className="mb-2">
+                    <div
+                      id="password-strength-chart"
+                      style={{ width: "100%", height: "120px" }}
+                    ></div>
+                  </div>
+                  <div className="space-y-1 mt-2">
+                    {passwordRequirements.map((req) => (
+                      <div key={req.id} className="flex items-center text-sm">
+                        <i
+                          className={`fas fa-${
+                            req.regex.test(formData.password)
+                              ? "check text-green-500"
+                              : "times text-gray-400"
+                          } w-5`}
+                        ></i>
+                        <span
+                          className={
+                            req.regex.test(formData.password)
+                              ? "text-green-600"
+                              : "text-gray-600"
+                          }
+                        >
+                          {req.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div className="relative">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Confirm Password
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    errors.confirmPassword
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200`}
+                  placeholder="Confirm your password"
+                />
+                {formData.confirmPassword &&
+                  formData.password === formData.confirmPassword && (
+                    <i className="fas fa-check-circle absolute right-3 top-3 text-green-500"></i>
+                  )}
+              </div>
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-500 flex items-center">
+                  <i className="fas fa-exclamation-circle mr-1"></i>
+                  {errors.confirmPassword}
+                </p>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 flex items-center justify-center !rounded-button whitespace-nowrap cursor-pointer ${
+                isLoading ? "opacity-80" : ""
+              }`}
+            >
+              {isLoading ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Creating account...
+                </>
+              ) : (
+                "Create Account"
+              )}
+            </button>
+
+            {/* Success Message */}
+            {showSuccessMessage && (
+              <div className="mt-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center animate-fade-in">
+                <i className="fas fa-check-circle text-green-500 mr-2"></i>
+                <span>Account created successfully! Redirecting...</span>
+              </div>
+            )}
+
+            {/* Terms and Privacy */}
+            <p className="text-sm text-gray-600 text-center mt-4">
+              By creating an account, you agree to our
+              <a href="#" className="text-blue-600 hover:underline mx-1">
+                Terms of Service
+              </a>
+              and
+              <a href="#" className="text-blue-600 hover:underline mx-1">
+                Privacy Policy
+              </a>
+            </p>
+          </div>
+        </form>
+
+        {/* Footer */}
+        <div className="px-6 md:px-8 py-4 bg-gray-50 border-t border-gray-100 text-center">
+          <p className="text-gray-600">
+            Already have an account?
+            <a
+              href="#"
+              className="text-blue-600 hover:underline font-medium ml-1"
+            >
+              Sign in
+            </a>
+          </p>
         </div>
       </div>
     </div>
   );
 };
+
 export default Signup;
