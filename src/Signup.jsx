@@ -1,8 +1,10 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
 
+import axios from "axios";
 import React, { useState, useEffect } from "react";
+import * as echarts from "echarts";
 
-const Signup = () => {
+function Signup() {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -105,30 +107,47 @@ const Signup = () => {
     return isValid;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (validateForm()) {
       setIsLoading(true);
 
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
-        setShowSuccessMessage(true);
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/api/auth/signup",
+          {
+            fullName: formData.fullName,
+            email: formData.email,
+            password: formData.password,
+            confirmPassword: formData.confirmPassword,
+          }
+        );
 
-        // Reset form after successful submission
+        console.log("Signup successful:", response.data);
+
+        setShowSuccessMessage(true);
+        setFormData({
+          fullName: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+        });
+
         setTimeout(() => {
           setShowSuccessMessage(false);
-          setFormData({
-            fullName: "",
-            email: "",
-            password: "",
-            confirmPassword: "",
-          });
         }, 3000);
-      }, 1500);
+      } catch (error) {
+        console.error("Signup error:", error.response?.data || error.message);
+        // Optionally, show error feedback to the user here
+        setErrors((prev) => ({
+          ...prev,
+          email: "Signup failed. Try another email or check your input.",
+        }));
+      } finally {
+        setIsLoading(false);
+      }
     } else {
-      // Add shake animation to form on error
       const form = document.getElementById("signup-form");
       form?.classList.add("animate-shake");
       setTimeout(() => {
@@ -525,6 +544,6 @@ const Signup = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Signup;

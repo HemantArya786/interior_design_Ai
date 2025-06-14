@@ -1,4 +1,5 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
+import axios from "axios";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 const Login = () => {
@@ -53,24 +54,43 @@ const Login = () => {
     setErrors(newErrors);
     return isValid;
   };
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (validateForm()) {
       setIsLoading(true);
 
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/api/auth/login",
+          formData
+        );
+
+        // Assuming success response
+        console.log("Login success:", response.data);
         setShowSuccessMessage(true);
 
-        // Reset success message after delay
+        // Reset success message after 3 seconds
         setTimeout(() => {
           setShowSuccessMessage(false);
         }, 3000);
-      }, 1500);
+      } catch (error) {
+        console.error("Login error:", error.response?.data || error.message);
+
+        // Optional: show specific backend validation messages
+        if (error.response?.data?.errors) {
+          setErrors((prev) => ({
+            ...prev,
+            ...error.response.data.errors,
+          }));
+        } else {
+          alert("Login failed. Please try again.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
     } else {
-      // Add shake animation to form on error
+      // Shake animation on form validation failure
       const form = document.getElementById("login-form");
       form?.classList.add("animate-shake");
       setTimeout(() => {
@@ -78,6 +98,7 @@ const Login = () => {
       }, 500);
     }
   };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 md:p-8">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden transition-all duration-300 transform">
